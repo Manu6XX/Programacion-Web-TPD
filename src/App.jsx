@@ -1,122 +1,131 @@
-import { useState } from 'react'
-import heroImg from './assets/hero.png'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import './App.css'
+import { useState, useMemo, useEffect } from 'react';
+import './App.css';
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [tareas, setTareas] = useState(() => {
+    const guardadas = localStorage.getItem('tareas');
+    return guardadas ? JSON.parse(guardadas) : [];
+  });
+  const [nuevaTarea, setNuevaTarea] = useState('');
+  const [filtro, setFiltro] = useState('todas'); // 'todas' | 'pendientes' | 'completadas'
+
+  useEffect(() => {
+    localStorage.setItem('tareas', JSON.stringify(tareas));
+  }, [tareas]);
+
+  const agregarTarea = (e) => {
+    e.preventDefault();
+    if (nuevaTarea.trim() === '') return;
+
+    const tarea = {
+      id: Date.now(),
+      texto: nuevaTarea.trim(),
+      hecha: false,
+    };
+
+    setTareas([tarea, ...tareas]);
+    setNuevaTarea('');
+  };
+
+  const marcarTerminada = (id) => {
+    setTareas(
+      tareas.map((tarea) =>
+        tarea.id === id ? { ...tarea, hecha: !tarea.hecha } : tarea
+      )
+    );
+  };
+
+  const borrarTarea = (id) => {
+    setTareas(tareas.filter((tarea) => tarea.id !== id));
+  };
+
+  const tareasVisibles = useMemo(() => {
+    if (filtro === 'pendientes') return tareas.filter((t) => !t.hecha);
+    if (filtro === 'completadas') return tareas.filter((t) => t.hecha);
+    return tareas;
+  }, [tareas, filtro]);
+
+  const completadas = tareas.filter((t) => t.hecha).length;
+
+  const mensajeVacio = {
+    todas: 'Tu lista está vacía. Agrega la primera tarea arriba.',
+    pendientes: 'No tienes tareas pendientes. Bien hecho.',
+    completadas: 'Todavía no has completado ninguna tarea.',
+  };
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          type="button"
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="pagina">
+      <div className="tarjeta">
+        <header className="cabecera">
+          <h1>Lista de Tareas</h1>
+          {tareas.length > 0 && (
+            <p className="contador">
+              {completadas} / {tareas.length} completadas
+            </p>
+          )}
+        </header>
 
-      <div className="ticks"></div>
+        <form onSubmit={agregarTarea} className="formulario">
+          <input
+            type="text"
+            value={nuevaTarea}
+            onChange={(e) => setNuevaTarea(e.target.value)}
+            placeholder="¿Qué tienes que hacer?"
+          />
+          <button type="submit">Agregar</button>
+        </form>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
-        </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+        {tareas.length > 0 && (
+          <div className="filtros">
+            {['todas', 'pendientes', 'completadas'].map((f) => (
+              <button
+                key={f}
+                className={filtro === f ? 'filtro activo' : 'filtro'}
+                onClick={() => setFiltro(f)}
+              >
+                {f.charAt(0).toUpperCase() + f.slice(1)}
+              </button>
+            ))}
+          </div>
+        )}
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+        <ul className="lista">
+          {tareasVisibles.length === 0 && (
+            <p className="vacio">{mensajeVacio[filtro]}</p>
+          )}
+          {tareasVisibles.map((tarea) => (
+            <li key={tarea.id} className="tarea">
+              <label className="casilla">
+                <input
+                  type="checkbox"
+                  checked={tarea.hecha}
+                  onChange={() => marcarTerminada(tarea.id)}
+                />
+                <span className="marca"></span>
+              </label>
+
+              <span className={tarea.hecha ? 'texto hecha' : 'texto'}>
+                {tarea.texto}
+              </span>
+
+              <button
+                className="borrar"
+                onClick={() => borrarTarea(tarea.id)}
+                aria-label="Borrar tarea"
+              >
+                ✕
+              </button>
+            </li>
+          ))}
+        </ul>
+
+        <footer className="pie">
+          <span>Juan Manuel Espitia Salguero y Juan José Barreiro Guapacha</span>
+          <span>Docente: Rafael Alberto Moreno Parra</span>
+        </footer>
+      </div>
+    </div>
+  );
 }
 
-export default App
+export default App;
